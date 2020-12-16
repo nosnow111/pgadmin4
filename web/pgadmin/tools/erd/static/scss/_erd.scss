@@ -15,6 +15,10 @@
     visibility: hidden;
   }
 
+  .text-icon {
+    font-weight: bold;
+  }
+
   .erd-status-bar {
     background: $sql-gutters-bg;
     border-top: $panel-border;

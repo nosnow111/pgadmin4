@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Tippy from '@tippyjs/react';
+import gettext from 'sources/gettext';
 
 export default function FloatingNote({open, onChange, onClose, reference, rows, noteNode, ...tippyProps}) {
   const textRef = React.useRef(null);
@@ -21,7 +22,7 @@ export default function FloatingNote({open, onChange, onClose, reference, rows, 
   return (
     <Tippy render={(attrs)=>(
       <div className="floating-note" {...attrs}>
-        <div className="note-header">Note:</div>
+        <div className="note-header">{gettext('Note')}:</div>
         <div className="note-body">
           <div className="p-1">{header}</div>
           <textarea ref={textRef} className="pg-textarea" value={text} rows={rows} onChange={(e)=>setText(e.target.value)}></textarea>
@@ -31,7 +32,7 @@ export default function FloatingNote({open, onChange, onClose, reference, rows, 
                 noteNode.setNote(text);
                 if(onClose) onClose();
               }}>
-              <span className="fa fa-check pg-alertify-button"></span>&nbsp;OK
+              <span className="fa fa-check pg-alertify-button"></span>&nbsp;{gettext('OK')}
             </button>
           </div>
         </div>

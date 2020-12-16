@@ -11,6 +11,8 @@ export default class ERDCore {
   constructor() {
     this._cache = {};
     this.table_counter = 1;
+    this.node_position_updating = false;
+    this.link_position_updating = false;
     this.initializeEngine();
     this.initializeModel();
     this.computeTableCounter();
@@ -53,6 +55,19 @@ export default class ERDCore {
           else if(e.function === 'editNode') {
             this.fireEvent({node: e.entity}, 'editNode', true);
           }
+          else if(e.function === 'nodeUpdated') {
+            this.fireEvent({}, 'nodesUpdated', true);
+          }
+          else if(e.function === 'positionChanged') {
+            /* Eat up the excessive positionChanged events if node is dragged continuosly */
+            if(!this.node_position_updating) {
+              this.node_position_updating = true;
+              this.fireEvent({}, 'nodesUpdated', true);
+              setTimeout(()=>{
+                this.node_position_updating = false;
+              }, 500);
+            }
+          }
         },
       });
     };
@@ -62,6 +77,17 @@ export default class ERDCore {
         eventDidFire: (e) => {
           if(e.function === 'selectionChanged') {
             this.fireEvent({}, 'linksSelectionChanged', true);
+          }
+          else if(e.function === 'positionChanged') {
+            /* positionChanged is triggered manually in Link */
+            /* Eat up the excessive positionChanged events if link is dragged continuosly */
+            if(!this.link_position_updating) {
+              this.link_position_updating = true;
+              this.fireEvent({}, 'linksUpdated', true);
+              setTimeout(()=>{
+                this.link_position_updating = false;
+              }, 500);
+            }
           }
         },
       });
@@ -188,9 +214,9 @@ export default class ERDCore {
     return newLink;
   }
 
-  serialize() {
+  serialize(version) {
     return {
-      version: 1000,
+      version: version||0,
       data: this.getModel().serialize(),
     };
   }

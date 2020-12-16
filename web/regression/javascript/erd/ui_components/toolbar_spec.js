@@ -31,7 +31,7 @@ describe('ERD Toolbar', ()=>{
     let toggle = shallow(<DetailsToggleButton showDetails={true} />);
     let btn = toggle.find(IconButton);
     expect(btn.prop('icon')).toBe('far fa-eye');
-    expect(btn.prop('title')).toBe('Show less details');
+    expect(btn.prop('title')).toBe('Show fewer details');
 
     toggle.setProps({showDetails: false});
     btn = toggle.find(IconButton);

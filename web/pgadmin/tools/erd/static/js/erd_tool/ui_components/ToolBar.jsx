@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
 import Tippy from '@tippyjs/react';
 import {isMac} from 'sources/keyboard_shortcuts';
+import gettext from 'sources/gettext';
 
 const BaseIconButton = forwardRef((props, ref)=>{
   const {icon, text, className, ...otherProps} = props;
@@ -50,15 +51,15 @@ export const IconButton = forwardRef((props, ref) => {
 export function DetailsToggleButton({showDetails, ...props}) {
   return (
     <IconButton
-      icon={showDetails ? "far fa-eye" : "fas fa-low-vision"}
-      title={showDetails ? "Show less details" : "Show more details" }
+      icon={showDetails ? 'far fa-eye' : 'fas fa-low-vision'}
+      title={showDetails ? gettext('Show fewer details') : gettext("Show more details") }
       {...props} />
   );
 }
 
 export function ButtonGroup({className, children}) {
   return (
-    <div className={"btn-group mr-1 " + (className ? className : '')} role="group" aria-label="save group">
+    <div className={'btn-group mr-1 ' + (className ? className : '')} role="group" aria-label="save group">
       {children}
     </div>
   )
