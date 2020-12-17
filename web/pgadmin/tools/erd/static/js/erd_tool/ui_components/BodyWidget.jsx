@@ -77,6 +77,7 @@ export default class BodyWidget extends React.Component {
     this.onCloneNode = this.onCloneNode.bind(this);
     this.onDeleteNode = this.onDeleteNode.bind(this);
     this.onNoteClick = this.onNoteClick.bind(this);
+    this.onNoteClose = this.onNoteClose.bind(this);
     this.onOneToManyClick = this.onOneToManyClick.bind(this);
     this.onManyToManyClick = this.onManyToManyClick.bind(this);
     this.onAutoDistribute = this.onAutoDistribute.bind(this);
@@ -493,10 +494,12 @@ export default class BodyWidget extends React.Component {
           ...left_table.getColumnAt(newData.left_table_column_attnum),
           'name': `${left_table.getData().name}_${left_table.getColumnAt(newData.left_table_column_attnum).name}`,
           'is_primary_key': false,
+          'attnum': 1,
         },{
           ...right_table.getColumnAt(newData.right_table_column_attnum),
           'name': `${right_table.getData().name}_${right_table.getColumnAt(newData.right_table_column_attnum).name}`,
           'is_primary_key': false,
+          'attnum': 2,
         }]
       }
       let newNode = this.diagram.addNode(tableData);
@@ -511,7 +514,8 @@ export default class BodyWidget extends React.Component {
       this.diagram.addLink(linkData, 'onetomany');
 
       linkData = {
-        ...linkData,
+        local_table_uid: newNode.getID(),
+        local_column_attnum: newNode.getColumns()[1].attnum,
         referenced_table_uid: newData.right_table_uid,
         referenced_column_attnum : newData.right_table_column_attnum,
       }
@@ -535,6 +539,11 @@ export default class BodyWidget extends React.Component {
   onNoteClick(e) {
     let noteNode = this.diagram.getSelectedNodes()[0];
     this.showNote(noteNode);
+  }
+
+  onNoteClose(updated) {
+    this.setState({note_open: false})
+    updated && this.diagram.fireEvent({}, 'nodesUpdated', true);
   }
 
   async initConnection() {
@@ -666,7 +675,7 @@ export default class BodyWidget extends React.Component {
       </ToolBar>
       <ConnectionBar statusId="btn-conn-status" status={this.state.conn_status} bgcolor={this.props.params.bgcolor}
         fgcolor={this.props.params.fgcolor} title={this.props.params.title}/>
-      <FloatingNote open={this.state.note_open} onClose={()=>this.setState({note_open: false})}
+      <FloatingNote open={this.state.note_open} onClose={this.onNoteClose}
         reference={this.noteRefEle} noteNode={this.state.note_node} appendTo={this.diagramContainerRef.current} rows={8}/>
       <div className="diagram-container" ref={this.diagramContainerRef}>
         <Loader message={this.state.loading_msg} autoEllipsis={true}/>

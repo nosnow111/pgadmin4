@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Tippy from '@tippyjs/react';
 import gettext from 'sources/gettext';
 
-export default function FloatingNote({open, onChange, onClose, reference, rows, noteNode, ...tippyProps}) {
+export default function FloatingNote({open, onClose, reference, rows, noteNode, ...tippyProps}) {
   const textRef = React.useRef(null);
   const [text, setText] = useState('');
   const [header, setHeader] = useState('');
@@ -29,8 +29,9 @@ export default function FloatingNote({open, onChange, onClose, reference, rows, 
           <div className="pg_buttons">
             <button className="btn btn-primary long_text_editor pg-alertify-button" data-label="OK"
               onClick={()=>{
+                let updated = (noteNode.getNote() != text);
                 noteNode.setNote(text);
-                if(onClose) onClose();
+                if(onClose) onClose(updated);
               }}>
               <span className="fa fa-check pg-alertify-button"></span>&nbsp;{gettext('OK')}
             </button>
