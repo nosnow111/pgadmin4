@@ -1,6 +1,8 @@
 import os
+import sys
 import json
 import uuid
+import traceback
 
 
 CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +54,7 @@ def abort_debugger(self):
     self.assertEqual(response.status_code, 200)
 
 
-def add_extension(self, utils):
+def add_extension(self, utils, del_function=True, db_utils=None):
     extension_url = '/browser/extension/obj/{0}/{1}/{2}/'.format(
         str(utils.SERVER_GROUP), str(self.server_id), str(self.db_id))
     extension_data = {
@@ -69,6 +71,9 @@ def add_extension(self, utils):
                                              self.server['port'],
                                              self.server['sslmode'])
         pg_cursor = connection.cursor()
+        # Drop existing extension.
+        pg_cursor.execute('''DROP EXTENSION IF EXISTS "%s" ''' % 'pldbgapi')
+
         # Create pldbgapi extension if not exist.
         pg_cursor.execute('''CREATE EXTENSION IF NOT EXISTS
         "%s" WITH SCHEMA "%s" VERSION
@@ -77,7 +82,16 @@ def add_extension(self, utils):
 
         connection.commit()
     except Exception as e:
-        print('Unable to create "pldbgapi" extension.')
+        print(
+            "============================================================="
+            "=========\n",
+            file=sys.stderr
+        )
+        if del_function:
+            delete_function(self, utils)
+
+        db_utils.disconnect_database(self, self.server_id, self.db_id)
+        self.skipTest('The debugger plugin is not installed.')
 
 
 def init_debugger_function(self):
@@ -112,11 +126,16 @@ def initialize_target(self, utils, close_debugger_instance=True):
                       'for indirect debugging.')
 
 
-def start_listener(self):
+def start_listener(self, utils, db_utils):
     response = self.tester.get(
         'debugger/start_listener/' + str(self.trans_id),
         content_type='application/json')
-
+    if response.status_code != 200:
+        close_debugger(self)
+        delete_function(self, utils)
+        db_utils.disconnect_database(
+            self, self.server_id, self.db_id)
+        self.skipTest('Debugger is in Busy state.')
     self.assertEqual(response.status_code, 200)
 
 
@@ -134,18 +153,32 @@ def create_trigger(self, utils):
     return json.loads(response.data)['node']['_id']
 
 
-def messages(self):
+def messages(self, utils, db_utils):
     response = self.tester.get(
         'debugger/messages/' + str(self.trans_id) + '/',
         content_type='application/json')
+    port = json.loads(response.data)['data']['result']
+    if not port:
+        close_debugger(self)
+        delete_function(self, utils)
+        db_utils.disconnect_database(
+            self, self.server_id, self.db_id)
+        self.skipTest('Debugger is in Busy state.')
+    else:
+        return port
 
-    return json.loads(response.data)['data']['result']
 
-
-def start_execution(self):
+def start_execution(self, utils, db_utils):
     response = self.tester.get(
         'debugger/start_execution/' + str(self.trans_id) + '/' + str(
             self.port_no), content_type='application/json')
+
+    if response.status_code != 200:
+        close_debugger(self)
+        delete_function(self, utils)
+        db_utils.disconnect_database(
+            self, self.server_id, self.db_id)
+        self.skipTest('Debugger is in Busy state.')
 
     self.assertEqual(response.status_code, 200)
 

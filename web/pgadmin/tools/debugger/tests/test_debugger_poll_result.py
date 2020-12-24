@@ -42,7 +42,7 @@ class DebuggerPollResult(BaseTestGenerator):
         self.func_id = json.loads(function_info.data)['node']['_id']
 
         if self.add_extension:
-            debugger_utils.add_extension(self, utils)
+            debugger_utils.add_extension(self, utils, db_utils=db_utils)
 
         init_debugger = debugger_utils.init_debugger_function(self)
 
@@ -51,7 +51,7 @@ class DebuggerPollResult(BaseTestGenerator):
         if self.init_target:
             debugger_utils.initialize_target(self, utils)
 
-            debugger_utils.start_listener(self)
+            debugger_utils.start_listener(self, utils, db_utils)
 
     def execute_query(self):
         return self.tester.get(
