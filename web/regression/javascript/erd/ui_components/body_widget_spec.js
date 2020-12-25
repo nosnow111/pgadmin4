@@ -41,15 +41,21 @@ let pgAdmin = {
   },
 };
 
-let alertify = jasmine.createSpyObj('alertify', ['success', 'error']);
+let alertify = jasmine.createSpyObj('alertify', {
+  'success': null,
+  'error': null,
+  'alert': {
+    'set': ()=>{},
+  },
+});
 
-let entityDialog = jasmine.createSpyObj('entityDialog', ['show']);
+let tableDialog = jasmine.createSpyObj('TableDialog', ['show']);
 let otmDialog = jasmine.createSpyObj('otmDialog', ['show']);
 let mtmDialog = jasmine.createSpyObj('mtmDialog', ['show']);
 
 let getDialog = (dialogName)=>{
   switch(dialogName) {
-  case 'entity_dialog': return entityDialog;
+  case 'entity_dialog': return tableDialog;
   case 'onetomany_dialog': return otmDialog;
   case 'manytomany_dialog': return mtmDialog;
   }
@@ -89,7 +95,7 @@ describe('ERD BodyWidget', ()=>{
     spyOn(ERDCore.prototype, 'deserializeData');
     spyOn(ERDCore.prototype, 'addNode').and.returnValue({
       setSelected: ()=>{},
-      getColumns: ()=>([{attnum: 0}]),
+      getColumns: ()=>([{attnum: 0}, {attnum: 1}]),
       getID: ()=>'newid1',
     });
     spyOn(ERDCore.prototype, 'addLink').and.returnValue({
@@ -104,15 +110,12 @@ describe('ERD BodyWidget', ()=>{
       'col_types': colTypes,
       'schemas': schemas,
     }});
-    networkMock.onGet('/erd/tables/110008/1/5/13637').reply(200, {'success': 1});
+    networkMock.onGet('/erd/tables/110008/1/5/13637').reply(200, {'data': []});
 
     networkMock.onPost('/erd/sql/110008/1/5/13637').reply(200, {'data': 'SELECT 1;'});
 
     networkMock.onPost('/sqleditor/load_file/').reply(200, {'data': 'data'});
     networkMock.onPost('/sqleditor/save_file/').reply(200, {'data': 'data'});
-
-
-
   });
 
   beforeEach(()=>{
@@ -224,7 +227,7 @@ describe('ERD BodyWidget', ()=>{
 
   it('getDialog', ()=>{
     bodyInstance.getDialog('entity_dialog')();
-    expect(entityDialog.show).toHaveBeenCalled();
+    expect(tableDialog.show).toHaveBeenCalled();
 
     bodyInstance.getDialog('onetomany_dialog')();
     expect(otmDialog.show).toHaveBeenCalled();
@@ -235,26 +238,26 @@ describe('ERD BodyWidget', ()=>{
 
   it('addEditNode', ()=>{
     /* New */
-    entityDialog.show.calls.reset();
+    tableDialog.show.calls.reset();
     bodyInstance.addEditNode();
-    expect(entityDialog.show).toHaveBeenCalled();
+    expect(tableDialog.show).toHaveBeenCalled();
 
-    let saveCallback = entityDialog.show.calls.mostRecent().args[5];
+    let saveCallback = tableDialog.show.calls.mostRecent().args[5];
     let newData = {key: 'value'};
     saveCallback(newData);
     expect(bodyInstance.diagram.addNode).toHaveBeenCalledWith(newData);
 
     /* Existing */
-    entityDialog.show.calls.reset();
+    tableDialog.show.calls.reset();
     let node = jasmine.createSpyObj('node',{
       getSchemaTableName: ['erd1', 'table1'],
       setData: null,
       getData: null,
     });
     bodyInstance.addEditNode(node);
-    expect(entityDialog.show).toHaveBeenCalled();
+    expect(tableDialog.show).toHaveBeenCalled();
 
-    saveCallback = entityDialog.show.calls.mostRecent().args[5];
+    saveCallback = tableDialog.show.calls.mostRecent().args[5];
     newData = {key: 'value'};
     saveCallback(newData);
     expect(node.setData).toHaveBeenCalledWith(newData);
@@ -427,13 +430,13 @@ describe('ERD BodyWidget', ()=>{
       'id1': {
         getID: ()=>'id1',
         getData: ()=>({name: 'table1', schema: 'erd1'}),
-        getColumnAt: ()=>({name: 'col1', type: 'type1'}),
+        getColumnAt: ()=>({name: 'col1', type: 'type1', attnum: 0}),
         addPort: jasmine.createSpy('addPort').and.callFake((obj)=>obj),
       },
       'id2': {
         getID: ()=>'id2',
         getData: ()=>({name: 'table2', schema: 'erd2'}),
-        getColumnAt: ()=>({name: 'col2', type: 'type2'}),
+        getColumnAt: ()=>({name: 'col2', type: 'type2', attnum: 1}),
         addPort: jasmine.createSpy('addPort').and.callFake((obj)=>obj),
       },
     };
@@ -460,11 +463,13 @@ describe('ERD BodyWidget', ()=>{
           type: 'type1',
           name: 'table1_col1',
           is_primary_key: false,
+          attnum: 0,
         },
         {
           type: 'type2',
           name: 'table2_col2',
           is_primary_key: false,
+          attnum: 1,
         },
       ],
     });
@@ -478,7 +483,7 @@ describe('ERD BodyWidget', ()=>{
     expect(bodyInstance.diagram.addLink.calls.argsFor(0)).toEqual([linkData, 'onetomany']);
     linkData = {
       local_table_uid: 'newid1',
-      local_column_attnum: 0,
+      local_column_attnum: 1,
       referenced_table_uid: 'id2',
       referenced_column_attnum : 2,
     };

@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////////////
 
 import gettext from 'sources/gettext';
-import url_for from 'sources/url_for';
+import * as commonUtils from 'sources/utils';
 
 export default class DialogWrapper {
   constructor(dialogContainerSelector, dialogTitle, typeOfDialog,
@@ -34,40 +34,29 @@ export default class DialogWrapper {
     this.alertify.pgDialogBuild.apply(this);
   }
 
+  disableOKButton() {
+    this.__internal.buttons[1].element.disabled = true;
+  }
+
+  enableOKButton() {
+    this.__internal.buttons[1].element.disabled = false;
+  }
+
+  focusOnDialog(alertifyDialog) {
+    let backform_tab = this.jquery(alertifyDialog.elements.body).find('.backform-tab');
+    backform_tab.attr('tabindex', -1);
+    this.pgBrowser.keyboardNavigation.getDialogTabNavigator(this.jquery(alertifyDialog.elements.dialog));
+    let container = backform_tab.find('.tab-content:first > .tab-pane.active:first');
+
+    if(container.length === 0 && alertifyDialog.elements.content.innerHTML) {
+      container = this.jquery(alertifyDialog.elements.content);
+    }
+    commonUtils.findAndSetFocus(container);
+  }
+
   setup() {
-    let get_help_file = function (dialog_type) {
-      if (dialog_type == 'globals') {
-        return 'backup_globals_dialog.html';
-      } else if (dialog_type == 'server') {
-        return 'backup_server_dialog.html';
-      }
-      return 'backup_dialog.html';
-    };
     return {
       buttons: [{
-        text: '',
-        className: 'btn btn-secondary pull-left fa fa-info pg-alertify-icon-button',
-        attrs: {
-          name: 'object_help',
-          type: 'button',
-          url: 'backup.html',
-          label: gettext('Backup'),
-          'aria-label': gettext('Backup'),
-        },
-      }, {
-        text: '',
-        key: 112,
-        className: 'btn btn-secondary pull-left fa fa-question pg-alertify-icon-button',
-        attrs: {
-          name: 'dialog_help',
-          type: 'button',
-          label: gettext('Help'),
-          'aria-label': gettext('Help'),
-          url: url_for('help.static', {
-            'filename': get_help_file(this.typeOfDialog),
-          }),
-        },
-      }, {
         text: gettext('Cancel'),
         key: 27,
         className: 'btn btn-secondary fa fa-lg fa-times pg-alertify-button',
@@ -100,24 +89,53 @@ export default class DialogWrapper {
     dialog.render();
     this.elements.content.innerHTML = '';
     this.elements.content.appendChild($container.get(0));
-
     this.jquery(this.elements.body.childNodes[0]).addClass(
       'alertify_tools_dialog_properties obj_properties'
     );
+    const statusBar = this.jquery(
+      '<div class=\'pg-prop-status-bar pg-prop-status-bar-absolute pg-el-xs-12 d-none\'>' +
+      '  <div class="error-in-footer"> ' +
+      '    <div class="d-flex px-2 py-1"> ' +
+      '      <div class="pr-2"> ' +
+      '        <i class="fa fa-exclamation-triangle text-danger" aria-hidden="true"></i> ' +
+      '      </div> ' +
+      '      <div class="alert-text" role="alert"></div> ' +
+      '       <div class="ml-auto close-error-bar"> ' +
+      '          <a aria-label="' + gettext('Close error bar') + '" class="close-error fa fa-times text-danger"></a> ' +
+      '        </div> ' +
+      '    </div> ' +
+      '  </div> ' +
+      '</div>').appendTo($container);
+
+    statusBar.find('.close-error').on('click', ()=>{
+      statusBar.addClass('d-none');
+    });
+
+    var onSessionInvalid = (msg) => {
+      statusBar.find('.alert-text').text(msg);
+      statusBar.removeClass('d-none');
+      this.disableOKButton();
+      return true;
+    };
+
+    var onSessionValidated = () => {
+      statusBar.find('.alert-text').text('');
+      statusBar.addClass('d-none');
+      this.enableOKButton();
+      return true;
+    };
+
+    this.dialogModel.on('pgadmin-session:valid', onSessionValidated);
+    this.dialogModel.on('pgadmin-session:invalid', onSessionInvalid);
+    this.dialogModel.startNewSession();
+    this.disableOKButton();
+    this.focusOnDialog(this);
   }
 
   callback(event) {
     if (this.wasOkButtonPressed(event)) {
       this.okCallback(this.view.model.toJSON(true));
     }
-  }
-
-  disableOKButton() {
-    this.__internal.buttons[3].element.disabled = true;
-  }
-
-  enableOKButton() {
-    this.__internal.buttons[3].element.disabled = false;
   }
 
   createDialog($container) {

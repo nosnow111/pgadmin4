@@ -22,7 +22,6 @@ export function initialize(gettext, url_for, $, _, pgAdmin, csrfToken, pgBrowser
   if (pgBrowser.erd)
     return pgBrowser.erd;
 
-  // Create an Object Restore of pgBrowser class
   pgBrowser.erd = {
     init: function() {
       if (this.initialized)

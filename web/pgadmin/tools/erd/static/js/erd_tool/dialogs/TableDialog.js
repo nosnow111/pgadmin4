@@ -16,7 +16,32 @@ import _ from 'lodash';
 
 import DialogWrapper from './DialogWrapper';
 
-export default class EntityDialog {
+export function transformToSupported(data) {
+  /* Table fields */
+  data = _.pick(data, ['oid', 'name', 'schema', 'description', 'columns', 'primary_key', 'foreign_key']);
+
+  /* Columns */
+  data['columns'] = data['columns'].map((column)=>{
+    return _.pick(column,[
+      'name','description','attowner','attnum','cltype','min_val_attlen','min_val_attprecision','max_val_attlen',
+      'max_val_attprecision', 'is_primary_key','attnotnull','attlen','attprecision','attidentity','colconstype',
+      'seqincrement','seqstart','seqmin','seqmax','seqcache','seqcycle',
+    ]);
+  });
+
+  /* Primary key */
+  data['primary_key'] = data['primary_key'].map((primary_key)=>{
+    primary_key = _.pick(primary_key, ['columns']);
+    primary_key['columns'] = primary_key['columns'].map((column)=>{
+      return _.pick(column, ['column']);
+    });
+    return primary_key;
+  });
+
+  return data;
+}
+
+export default class TableDialog {
   constructor(pgBrowser) {
     this.pgBrowser = pgBrowser;
   }
@@ -347,7 +372,7 @@ export default class EntityDialog {
           }
         }
 
-        var  minimum = this.get('seqmin'),
+        var minimum = this.get('seqmin'),
           maximum = this.get('seqmax'),
           start = this.get('seqstart');
 
@@ -550,29 +575,26 @@ export default class EntityDialog {
                 } else {
                   primary_key = primary_key_coll.first();
                 }
-                // Do not alter existing primary key columns.
-                if (_.isUndefined(primary_key.get('oid'))) {
-                  primary_key_column_coll = primary_key.get('columns');
-                  var primary_key_column_exist = primary_key_column_coll.where({column:column_name});
 
-                  if (primary_key_column_exist.length == 0) {
-                    var primary_key_column = new (
-                      primary_key_column_coll.model
-                    )({column: column_name}, {
-                      silent: true,
-                      top: self.model,
-                      collection: primary_key_coll,
-                      handler: primary_key_coll,
-                    });
+                primary_key_column_coll = primary_key.get('columns');
+                var primary_key_column_exist = primary_key_column_coll.where({column:column_name});
 
-                    primary_key_column_coll.add(primary_key_column);
-                  }
+                if (primary_key_column_exist.length == 0) {
+                  var primary_key_column = new (
+                    primary_key_column_coll.model
+                  )({column: column_name}, {
+                    silent: true,
+                    top: self.model,
+                    collection: primary_key_coll,
+                    handler: primary_key_coll,
+                  });
 
-                  primary_key_column_coll.trigger(
-                    'pgadmin:multicolumn:updated', primary_key_column_coll
-                  );
+                  primary_key_column_coll.add(primary_key_column);
                 }
 
+                primary_key_column_coll.trigger(
+                  'pgadmin:multicolumn:updated', primary_key_column_coll
+                );
               } else {
                 // remove column from primary key.
                 if (primary_key_coll.length > 0) {
@@ -602,14 +624,31 @@ export default class EntityDialog {
                 }
               }
             });
-          },
-          remove: function() {
-            var collection = this.model.get(this.field.get('name'));
-            if (collection) {
-              collection.off('change:is_primary_key');
-            }
 
-            Backform.UniqueColCollectionControl.prototype.remove.apply(this, arguments);
+            collection.on('change:name', function(m) {
+              let primary_key = self.model.get('primary_key').first(),
+                updatedCols = primary_key.get('columns').where(
+                  {column: m.previous('name')}
+                );
+              if (updatedCols.length > 0) {
+                /*
+                 * Table column name has changed so update
+                 * column name in primary key as well.
+                 */
+                updatedCols[0].set(
+                  {'column': m.get('name')},
+                  {silent: true});
+              }
+            });
+
+            collection.on('remove', function(m) {
+              let primary_key = self.model.get('primary_key').first(),
+                removedCols = primary_key.get('columns').where(
+                  {column: m.get('name')}
+                );
+
+              primary_key.get('columns').remove(removedCols);
+            });
           },
         }),
         canAdd: true,
@@ -636,7 +675,28 @@ export default class EntityDialog {
         ],
       }],
       validate: function() {
-        // TODO: HOW TO VALIDATE ???
+        var msg,
+          name = this.get('name'),
+          schema = this.get('schema');
+
+        if (
+          _.isUndefined(name) || _.isNull(name) ||
+            String(name).replace(/^\s+|\s+$/g, '') == ''
+        ) {
+          msg = gettext('Table name cannot be empty.');
+          this.errorModel.set('name', msg);
+          return msg;
+        }
+        this.errorModel.unset('name');
+        if (
+          _.isUndefined(schema) || _.isNull(schema) ||
+            String(schema).replace(/^\s+|\s+$/g, '') == ''
+        ) {
+          msg = gettext('Table schema cannot be empty.');
+          this.errorModel.set('schema', msg);
+          return msg;
+        }
+        this.errorModel.unset('schema');
         return null;
       },
     });
@@ -644,15 +704,15 @@ export default class EntityDialog {
     return new dialogModel(attributes);
   }
 
-  createOrGetDialog(title) {
+  createOrGetDialog(type) {
     const dialogName = this.dialogName();
 
     if (!Alertify[dialogName]) {
       Alertify.dialog(dialogName, () => {
         return new DialogWrapper(
           `<div class="${dialogName}"></div>`,
-          title,
           null,
+          type,
           $,
           this.pgBrowser,
           Alertify,
@@ -664,8 +724,8 @@ export default class EntityDialog {
   }
 
   show(title, attributes, colTypes, schemas, sVersion, callback) {
-    let dialogTitle = title || gettext('Table - ')  + 'hello';
-    const dialog = this.createOrGetDialog('Table: ');
+    let dialogTitle = title || gettext('Unknown');
+    const dialog = this.createOrGetDialog('table_dialog');
     dialog(dialogTitle, this.getDataModel(attributes, colTypes, schemas, sVersion), callback).resizeTo(this.pgBrowser.stdW.md, this.pgBrowser.stdH.md);
   }
 }

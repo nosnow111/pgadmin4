@@ -24,6 +24,7 @@ define([
 
   pgTools.ERDToolHook = {
     load: function(params) {
+      /* Create the ERD Tool object and render it */
       let erdObj = new ERDTool('#erd-tool-container', params);
       erdObj.render();
     },

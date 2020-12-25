@@ -1,3 +1,12 @@
+/////////////////////////////////////////////////////////////
+//
+// pgAdmin 4 - PostgreSQL Tools
+//
+// Copyright (C) 2013 - 2020, The pgAdmin Development Team
+// This software is released under the PostgreSQL Licence
+//
+//////////////////////////////////////////////////////////////
+
 import * as React from 'react';
 import { CanvasWidget } from '@projectstorm/react-canvas-core';
 import axios from 'axios';
@@ -98,16 +107,15 @@ export default class BodyWidget extends React.Component {
         let bgSize = gridSize*event.zoom/100;
         this.realignGrid({backgroundSize: `${bgSize*3}px ${bgSize*3}px`});
       },
-      'nodesSelectionChanged': (event)=>{
+      'nodesSelectionChanged': ()=>{
         let selected = this.diagram.getSelectedNodes();
         this.setState({no_node_selected: selected.length == 0});
       },
-      'linksSelectionChanged': (event)=>{
+      'linksSelectionChanged': ()=>{
         let selected = this.diagram.getSelectedLinks();
         this.setState({no_link_selected: selected.length == 0});
       },
-      'linksUpdated': (event) => {
-        // this.diagram.repaint();
+      'linksUpdated': () => {
         this.setState({dirty: true});
       },
       'nodesUpdated': ()=>{
@@ -152,16 +160,17 @@ export default class BodyWidget extends React.Component {
   }
 
   handleAxiosCatch(err) {
+    let alert = this.props.alertify.alert().set('title', gettext('Error'));
     if (err.response) {
       // client received an error response (5xx, 4xx)
-      this.props.alertify.alert(`${err.response.statusText} - ${err.response.data.errormsg}`);
+      alert.set('message', `${err.response.statusText} - ${err.response.data.errormsg}`).show();
       console.error('response error', err.response);
     } else if (err.request) {
       // client never received a response, or request never left
-      this.props.alertify.alert(gettext('Client error') + ':' + err);
+      alert.set('message', gettext('Client error') + ':' + err).show();
       console.error('client eror', err);
     } else {
-      this.props.alertify.alert(err.message);
+      alert.set('message', err.message).show();
       console.error('other error', err);
     }
   }
@@ -421,33 +430,11 @@ export default class BodyWidget extends React.Component {
   }
 
   onImageClick() {
-
+    /* Not working completely */
+    return;
     this.setLoading(gettext('Preparing the image...'));
     var svgElements = this.canvasEle.querySelectorAll('svg');
-    // svgElements.forEach(function(svg) {
-    //   let svgParent = svg.parentNode;
-    //   let canvas = document.createElement('canvas');
-    //   svgParent.removeChild(svg);
-    //   svgParent.appendChild(canvas);
-    //   let xml = (new XMLSerializer()).serializeToString(svg);
-    //   xml = xml.replace(/xmlns=\"http:\/\/www\.w3\.org\/2000\/svg\"/, '');
-    //   let v = Canvg.fromString(canvas.getContext('2d'), xml);
-    //   v.start();
-    //     // item.setAttribute("width", item.getBoundingClientRect().width);
-    //     // item.setAttribute("height", item.getBoundingClientRect().height);
-    //     // item.style.width = null;
-    //     // item.style.height= null;
-    // });
-
     svgElements.forEach(function(svg) {
-      // let svgParent = svg.parentNode;
-      // let canvas = document.createElement('canvas');
-      // svgParent.removeChild(svg);
-      // svgParent.appendChild(canvas);
-      // let xml = (new XMLSerializer()).serializeToString(svg);
-      // xml = xml.replace(/xmlns=\"http:\/\/www\.w3\.org\/2000\/svg\"/, '');
-      // let v = Canvg.fromString(canvas.getContext('2d'), xml);
-      // v.start();
       svg.setAttribute("width", svg.getBoundingClientRect().width);
       svg.setAttribute("height", svg.getBoundingClientRect().height);
       svg.style.width = null;
@@ -475,6 +462,7 @@ export default class BodyWidget extends React.Component {
     let initData = {local_table_uid: this.diagram.getSelectedNodes()[0].getID()};
     dialog('One to many relation', initData, (newData)=>{
       let newLink = this.diagram.addLink(newData, 'onetomany');
+      this.diagram.clearSelection();
       newLink.setSelected(true);
       this.diagram.repaint();
     });
@@ -494,12 +482,12 @@ export default class BodyWidget extends React.Component {
           ...left_table.getColumnAt(newData.left_table_column_attnum),
           'name': `${left_table.getData().name}_${left_table.getColumnAt(newData.left_table_column_attnum).name}`,
           'is_primary_key': false,
-          'attnum': 1,
+          'attnum': 0,
         },{
           ...right_table.getColumnAt(newData.right_table_column_attnum),
           'name': `${right_table.getData().name}_${right_table.getColumnAt(newData.right_table_column_attnum).name}`,
           'is_primary_key': false,
-          'attnum': 2,
+          'attnum': 1,
         }]
       }
       let newNode = this.diagram.addNode(tableData);
@@ -610,7 +598,10 @@ export default class BodyWidget extends React.Component {
 
     try {
       let response = await axios.get(url);
-      this.diagram.deserializeData(response.data.data);
+      let tables = response.data.data.map((table)=>{
+        return this.props.transformToSupported('table', table);
+      });
+      this.diagram.deserializeData(tables);
       return true;
     } catch (error) {
       this.handleAxiosCatch(error);
@@ -635,9 +626,9 @@ export default class BodyWidget extends React.Component {
         <ButtonGroup>
           <IconButton id="save-sql" icon="fa fa-file-code" onClick={this.onSQLClick} title={gettext('Generate SQL')}
             shortcut={this.state.preferences.generate_sql}/>
-          {/* <IconButton id="save-image" icon="far fa-file-image" onClick={this.onImageClick} title={gettext('Download as image"
-            shortcut={this.state.preferences.download_image}/> */}
         </ButtonGroup>
+        <IconButton id="save-image" icon="far fa-file-image" onClick={this.onImageClick} title={gettext('Download as image')}
+            shortcut={this.state.preferences.download_image} className={'d-none'}/>
         <ButtonGroup>
           <IconButton id="add-node" icon="fa fa-plus-square" onClick={this.onAddNewNode} title={gettext('Add table')}
             shortcut={this.state.preferences.add_table}/>

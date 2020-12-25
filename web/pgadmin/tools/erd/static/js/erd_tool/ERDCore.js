@@ -1,3 +1,15 @@
+/////////////////////////////////////////////////////////////
+//
+// pgAdmin 4 - PostgreSQL Tools
+//
+// Copyright (C) 2013 - 2020, The pgAdmin Development Team
+// This software is released under the PostgreSQL Licence
+//
+//////////////////////////////////////////////////////////////
+
+/*
+ * The ERDCore is the middleware between the canvas engine and the UI DOM.
+ */
 import createEngine from '@projectstorm/react-diagrams';
 import {DagreEngine, PathFindingLinkFactory, PortModelAlignment} from '@projectstorm/react-diagrams';
 import { ZoomCanvasAction } from '@projectstorm/react-canvas-core';
@@ -121,7 +133,7 @@ export default class ERDCore {
   }
 
   computeTableCounter() {
-    // TODO: Check the tables and compute the number.
+    /* Some inteligence can be added to set the counter */
     this.table_counter = 1;
   }
 
@@ -198,15 +210,19 @@ export default class ERDCore {
 
     let portName = sourceNode.getPortName(data.referenced_column_attnum);
     let sourcePort = sourceNode.getPort(portName);
+    /* Create the port if not there */
     if(!sourcePort) {
       sourcePort = sourceNode.addPort(this.getNewPort(type, null, {name:portName, alignment:PortModelAlignment.RIGHT}));
     }
 
     portName = targetNode.getPortName(data.local_column_attnum);
     let targetPort = targetNode.getPort(portName);
+    /* Create the port if not there */
     if(!targetPort) {
       targetPort = targetNode.addPort(this.getNewPort(type, null, {name:portName, alignment:PortModelAlignment.RIGHT}));
     }
+
+    /* Link the ports */
     let newLink = this.getNewLink(type, data);
     newLink.setSourcePort(sourcePort);
     newLink.setTargetPort(targetPort);
@@ -270,7 +286,6 @@ export default class ERDCore {
     });
 
     /* Lets use the oidUidMap for creating the links */
-    /* local_column: "col1", references: 408234, referenced: "id", references_table_name: "erd.tab2" */
     uidFks.forEach((fkData)=>{
       let tableNodesDict = this.getModel().getNodesDict();
       let newData = {

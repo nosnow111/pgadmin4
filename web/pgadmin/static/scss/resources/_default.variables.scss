@@ -111,7 +111,7 @@ $dropdown-spacer: .125rem; //no-change
 $dropdown-link-disabled-color: $text-muted;
 $nav-divider-margin-y: .25rem;
 
-$popover-bg: $color-fg !default;
+$popover-bg: $color-gray-dark !default;
 $popover-body-color: $white !default;
 $popover-border-color: $dropdown-border-color;
 $popover-box-shadow: $dropdown-box-shadow;
@@ -159,7 +159,6 @@ $input-placeholder-color: $text-muted;
 $input-border-color: $border-color !default;
 $input-border-radius: $border-radius;
 $input-disabled-bg: $color-gray-lighter !default;
-$input-transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 $input-btn-border-width: $border-width;
 $input-border-width: $input-btn-border-width;
 $input-btn-padding-y: .25rem;

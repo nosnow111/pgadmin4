@@ -42,18 +42,15 @@ export default class OneToManyDialog {
       },
       schema: [{
         id: 'local_table_uid', label: gettext('Local Table'),
-        disabled: false, readonly: true,
-        control: Backform.InputControl.extend({
-          formatter: {
-            fromRaw: function (rawData) {
-              let [schema, name] = tableNodesDict[rawData].getSchemaTableName();
-              return `(${schema}) ${name}`;
-            },
-            toRaw: function (formattedData) {
-              return formattedData;
-            },
-          },
-        }),
+        type: 'select2', readonly: true,
+        options: ()=>{
+          let retOpts = [];
+          _.forEach(tableNodesDict, (node, uid)=>{
+            let [schema, name] = node.getSchemaTableName();
+            retOpts.push({value: uid, label: `(${schema}) ${name}`});
+          });
+          return retOpts;
+        },
       }, {
         id: 'local_column_attnum', label: gettext('Local Column'),
         type: 'select2', disabled: false, first_empty: false,
@@ -84,6 +81,33 @@ export default class OneToManyDialog {
           return [];
         },
       }],
+      validate: function(keys) {
+        var msg = undefined;
+
+        // Nothing to validate
+        if (keys && keys.length == 0) {
+          this.errorModel.clear();
+          return null;
+        } else {
+          this.errorModel.clear();
+        }
+
+        if (_.isUndefined(this.get('local_column_attnum')) || this.get('local_column_attnum') == '') {
+          msg = gettext('Select the local column.');
+          this.errorModel.set('local_column_attnum', msg);
+          return msg;
+        }
+        if (_.isUndefined(this.get('referenced_table_uid')) || this.get('referenced_table_uid') == '') {
+          msg = gettext('Select the referenced table.');
+          this.errorModel.set('referenced_table_uid', msg);
+          return msg;
+        }
+        if (_.isUndefined(this.get('referenced_column_attnum')) || this.get('referenced_column_attnum') == '') {
+          msg = gettext('Select the referenced table column.');
+          this.errorModel.set('referenced_column_attnum', msg);
+          return msg;
+        }
+      },
     });
 
     return new dialogModel(attributes);
@@ -109,7 +133,7 @@ export default class OneToManyDialog {
   }
 
   show(title, attributes, tablesData, sVersion, callback) {
-    let dialogTitle = title || gettext('Entity - ')  + 'hello';
+    let dialogTitle = title || gettext('Unknown');
     const dialog = this.createOrGetDialog('onetomany_dialog');
     dialog(dialogTitle, this.getDataModel(attributes, tablesData), callback).resizeTo(this.pgBrowser.stdW.sm, this.pgBrowser.stdH.md);
   }
