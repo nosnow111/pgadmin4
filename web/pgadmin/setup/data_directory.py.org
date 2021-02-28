@@ -42,18 +42,17 @@ def create_app_data_directory(config):
     # Try to set the permissions on the directory, but don't complain
     # if we can't. This may be the case on a mounted directory, e.g. in
     # OpenShift. We'll still secure the config database anyway.
-### Commented by vxm
-###    if os.name != 'nt':
-###        try:
-###            os.chmod(os.path.dirname(config.SQLITE_PATH), 0o700)
-###        except Exception as e:
-###            # The flask app isn't setup yet, so we can't use the logger
-###            print('WARNING: Failed to set ACL on the directory containing the '
-###                  'configuration database:\n           {}'.format(e))
-###            print("HINT   : You may need to manually set the permissions on\n"
-###                  "         {} to allow {} to write to it.".
-###                  format(os.path.dirname(config.SQLITE_PATH),
-###                         getpass.getuser()))
+    if os.name != 'nt':
+        try:
+            os.chmod(os.path.dirname(config.SQLITE_PATH), 0o700)
+        except Exception as e:
+            # The flask app isn't setup yet, so we can't use the logger
+            print('WARNING: Failed to set ACL on the directory containing the '
+                  'configuration database:\n           {}'.format(e))
+            print("HINT   : You may need to manually set the permissions on\n"
+                  "         {} to allow {} to write to it.".
+                  format(os.path.dirname(config.SQLITE_PATH),
+                         getpass.getuser()))
 
     # Create the directory containing the log file (if not present).
     try:
@@ -87,9 +86,8 @@ def create_app_data_directory(config):
                 config.APP_VERSION))
         exit(1)
 
-### Commented by vxm
-###    if os.name != 'nt':
-###        os.chmod(config.SESSION_DB_PATH, 0o700)
+    if os.name != 'nt':
+        os.chmod(config.SESSION_DB_PATH, 0o700)
 
     # Create the storage directory (if not present).
     try:
