@@ -4,6 +4,17 @@
 # provided by the user through the PGADMIN_CONFIG_* environment variables.
 # Only update the file on first launch. The empty file is created during the
 # container build so it can have the required ownership.
+
+#  One way to address this problem is to use nss wrapper and dynamically create a passwd file
+export USER_ID=$(id -u)
+export GROUP_ID=$(id -g)
+envsubst < ${HOME}/passwd.template > /tmp/passwd
+export LD_PRELOAD=/usr/lib64/libnss_wrapper.so
+export NSS_WRAPPER_PASSWD=/tmp/passwd
+export NSS_WRAPPER_GROUP=/etc/group
+#
+
+
 if [ `wc -m /pgadmin4/config_distro.py | awk '{ print $1 }'` = "0" ]; then
     cat << EOF > /pgadmin4/config_distro.py
 CA_FILE = '/etc/ssl/certs/ca-certificates.crt'

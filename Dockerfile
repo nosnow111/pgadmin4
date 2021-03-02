@@ -47,6 +47,7 @@ WORKDIR /pgadmin4/web
 RUN export CPPFLAGS="-DPNG_ARM_NEON_OPT=0" && \
     yarn install && \
     yarn run bundle && \
+    yum -y install nss_wrapper gettext
     rm -rf node_modules \
            yarn.lock \
            package.json \
@@ -163,6 +164,8 @@ COPY --from=docs-builder /pgadmin4/docs/en_US/_build/html/ /pgadmin4/docs
 COPY pkg/docker/run_pgadmin.py /pgadmin4
 COPY pkg/docker/gunicorn_config.py /pgadmin4
 COPY pkg/docker/entrypoint.sh /entrypoint.sh
+# vxm copy  passwd.template 
+COPY passwd.template /
 
 # License files
 COPY LICENSE /pgadmin4/LICENSE
