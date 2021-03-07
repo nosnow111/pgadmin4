@@ -47,7 +47,6 @@ WORKDIR /pgadmin4/web
 RUN export CPPFLAGS="-DPNG_ARM_NEON_OPT=0" && \
     yarn install && \
     yarn run bundle && \
-    yum -y install nss_wrapper gettext
     rm -rf node_modules \
            yarn.lock \
            package.json \
@@ -82,6 +81,7 @@ RUN     apk add --no-cache \
     /venv/bin/python3 -m pip install --no-cache-dir -r requirements.txt && \
     apk del --no-cache build-deps
 
+###
 #########################################################################
 # Now, create a documentation build container for the Sphinx docs
 #########################################################################
@@ -178,6 +178,7 @@ RUN apk add \
         postfix \
         postgresql-libs \
         krb5-libs \
+        gettext \
         shadow \
         sudo \
         libedit \
@@ -191,8 +192,9 @@ RUN apk add \
     mkdir -p /var/log/pgadmin && \
     chown pgadmin:pgadmin /var/log/pgadmin && \
     touch /pgadmin4/config_distro.py && \
-    chmod -R 777 /pgadmin4 /var/lib/pgadmin /var/log/pgadmin && \
     chown pgadmin:pgadmin /pgadmin4/config_distro.py && \
+    chgrp -R 0 /pgadmin4 /var/lib/pgadmin /var/log/pgadmin && \
+    chmod -R g+rwx /pgadmin4 /var/lib/pgadmin /var/log/pgadmin && \
     setcap CAP_NET_BIND_SERVICE=+eip /usr/bin/python3.8 && \
     echo "pgadmin ALL = NOPASSWD: ALL" >> /etc/sudoers && \
     echo "pgadmin ALL = NOPASSWD: /usr/sbin/postfix start" > /etc/sudoers.d/postfix
