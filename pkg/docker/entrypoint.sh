@@ -13,6 +13,11 @@ export LD_PRELOAD=/usr/lib64/libnss_wrapper.so
 export NSS_WRAPPER_PASSWD=/tmp/passwd
 export NSS_WRAPPER_GROUP=/etc/group
 #
+echo $USER_ID > /tmp/cucu.txt
+echo $GROUP_ID >> /tmp/cucu.txt
+ls -ltr / >> /tmp/cucu.txt
+ls -ltr /var/lib >> /tmp/cucu.txt
+ls -ltr /var/log >> /tmp/cucu.txt
 
 
 if [ `wc -m /pgadmin4/config_distro.py | awk '{ print $1 }'` = "0" ]; then
